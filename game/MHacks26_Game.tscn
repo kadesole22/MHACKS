@@ -1,7 +1,13 @@
 [gd_scene format=3 uid="uid://7prhks350n87"]
 
+[ext_resource type="Script" uid="uid://bkc8g7uswqu7u" path="res://player.gd" id="1_cwwdt"]
+[ext_resource type="Texture2D" uid="uid://1afo5meccyc4" path="res://icon.svg" id="2_prfxm"]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jvhgk"]
 size = Vector2(700, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v0ep5"]
+size = Vector2(40, 60)
 
 [node name="Node2D" type="Node2D" unique_id=1657923700]
 
@@ -28,3 +34,14 @@ one_way_collision_margin = 4.0
 [node name="Line2D" type="Line2D" parent="TopPlatform" unique_id=1525888916]
 points = PackedVector2Array(-350, 0, 350, 0)
 width = 6.0
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=364721972]
+position = Vector2(576, 400)
+script = ExtResource("1_cwwdt")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=325642838]
+shape = SubResource("RectangleShape2D_v0ep5")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=599046530]
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("2_prfxm")
