@@ -1,0 +1,81 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color-scheme: dark;
+  background: #14161c;
+  color: #f2f2f2;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+
+#app {
+  width: min(100%, 24rem);
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+#screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+/* 16px minimum stops iOS Safari from zooming on focus. */
+input,
+button {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid #3a3f4d;
+  background: #20232d;
+  color: inherit;
+}
+
+button {
+  background: #4f7cff;
+  border-color: #4f7cff;
+  font-weight: 600;
+}
+
+button.secondary {
+  background: transparent;
+  border-color: #3a3f4d;
+}
+
+.code {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.4rem;
+  text-align: center;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #2a2e3a;
+}
+
+li.offline {
+  opacity: 0.5;
+}
+
+#error {
+  min-height: 1.2rem;
+  color: #ff7a7a;
+}
