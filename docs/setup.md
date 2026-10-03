@@ -18,7 +18,8 @@ spacetime start   # local server on 127.0.0.1:3000 (leave running)
 cd spacetimedb/spacetimedb && npm install   # first time only
 cd .. && spacetime publish --server local --module-path spacetimedb -y platformer-6ea8r
 
-spacetime call --server local platformer-6ea8r say_hello
+spacetime call --server local platformer-6ea8r create_room Lily
+spacetime sql --server local platformer-6ea8r "SELECT * FROM room"
 spacetime logs --server local platformer-6ea8r
 ```
 
