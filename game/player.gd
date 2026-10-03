@@ -5,6 +5,10 @@ const SPEED = 300.0
 const JUMP_VELOCITY = -700.0
 const GRAVITY = 1100.0
 
+# Jump settings
+const MAX_JUMPS = 2
+var jumps_remaining = MAX_JUMPS
+
 # Grapple settings
 const GRAPPLE_ACCELERATION = 2500.0
 const GRAPPLE_MAX_SPEED = 900.0
@@ -54,9 +58,14 @@ func _physics_process(delta):
 		if not is_on_floor():
 			velocity.y += GRAVITY * delta
 
-		# Jump
-		if Input.is_action_just_pressed("jump") and is_on_floor():
+		# Reset jumps when standing on a surface
+		if is_on_floor():
+			jumps_remaining = MAX_JUMPS
+
+		# Jump / double jump
+		if Input.is_action_just_pressed("jump") and jumps_remaining > 0:
 			velocity.y = JUMP_VELOCITY
+			jumps_remaining -= 1
 
 		# Left/right movement
 		var direction = Input.get_axis("move_left", "move_right")
@@ -100,6 +109,7 @@ func fire_grapple():
 	# Listen for whether it hits terrain or misses.
 	hook.hooked.connect(_on_grapple_hooked)
 	hook.missed.connect(_on_grapple_missed)
+	hook.expired.connect(_on_grapple_expired)
 
 	current_hook = hook
 
@@ -137,3 +147,8 @@ func drop_through(platform):
 
 	if is_instance_valid(platform):
 		remove_collision_exception_with(platform)
+
+
+func _on_grapple_expired():
+	current_hook = null
+	is_grappling = false
