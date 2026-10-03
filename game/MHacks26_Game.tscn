@@ -11,7 +11,7 @@ size = Vector2(40, 60)
 
 [node name="Node2D" type="Node2D" unique_id=1657923700]
 
-[node name="BottomPlatform" type="StaticBody2D" parent="." unique_id=143716031 groups=["one_way_platform"]]
+[node name="BottomPlatform" type="StaticBody2D" parent="." unique_id=143716031 groups=["one_way_platforms"]]
 position = Vector2(576, 500)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BottomPlatform" unique_id=444833191]
@@ -23,7 +23,7 @@ one_way_collision_margin = 4.0
 points = PackedVector2Array(-350, 0, 350, 0)
 width = 6.0
 
-[node name="TopPlatform" type="StaticBody2D" parent="." unique_id=1731790091 groups=["one_way_platform"]]
+[node name="TopPlatform" type="StaticBody2D" parent="." unique_id=1731790091 groups=["one_way_platforms"]]
 position = Vector2(576, 300)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TopPlatform" unique_id=292441262]
