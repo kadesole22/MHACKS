@@ -76,11 +76,14 @@ function renderLobby(): void {
     .filter(p => p.roomCode === mine.roomCode)
     .sort((a, b) => (a.joinedAt.microsSinceUnixEpoch < b.joinedAt.microsSinceUnixEpoch ? -1 : 1));
 
+  const isHost = !!room && room.host.isEqual(me!);
   const list = el('ul');
   for (const p of players) {
+    const isRoomHost = !!room && room.host.isEqual(p.identity);
     const tags = [
-      room && room.host.isEqual(p.identity) ? 'host' : '',
+      isRoomHost ? 'host' : '',
       p.identity.isEqual(me!) ? 'you' : '',
+      !isRoomHost && p.ready ? 'ready' : '',
       p.online ? '' : 'offline',
     ].filter(Boolean);
     list.append(
@@ -91,22 +94,41 @@ function renderLobby(): void {
   const leave = el('button', { textContent: 'Leave', className: 'secondary' });
   leave.onclick = () => void run(() => conn!.reducers.leaveRoom({}));
 
+  let action: HTMLButtonElement;
+  if (isHost) {
+    action = el('button', { textContent: 'Start game' });
+    action.onclick = () => void run(() => conn!.reducers.startGame({}));
+  } else {
+    action = el('button', { textContent: mine.ready ? 'Not ready' : 'Ready' });
+    action.onclick = () => void run(() => conn!.reducers.setReady({ ready: !mine.ready }));
+  }
+
   screen.replaceChildren(
     el('h1', { textContent: 'Lobby' }),
     el('p', { className: 'code', textContent: mine.roomCode }),
     el('p', { textContent: `${players.length} player${players.length === 1 ? '' : 's'}` }),
     list,
+    action,
     leave
   );
 }
 
+function renderGame(): void {
+  const leave = el('button', { textContent: 'Leave', className: 'secondary' });
+  leave.onclick = () => void run(() => conn!.reducers.leaveRoom({}));
+  screen.replaceChildren(el('h1', { textContent: 'Game started' }), el('p', { textContent: 'Controls come in a later step.' }), leave);
+}
+
 function render(): void {
   if (!conn || !me || !synced) return;
-  const view = conn.db.player.identity.find(me) ? 'lobby' : 'join';
+  const mine = conn.db.player.identity.find(me);
+  const started = mine ? !!conn.db.room.code.find(mine.roomCode)?.started : false;
+  const view = !mine ? 'join' : started ? 'game' : 'lobby';
   // The join form is not re-rendered on unrelated updates so typing is not interrupted.
   if (view === 'join' && shownView === 'join') return;
   shownView = view;
   if (view === 'lobby') renderLobby();
+  else if (view === 'game') renderGame();
   else renderJoin();
 }
 

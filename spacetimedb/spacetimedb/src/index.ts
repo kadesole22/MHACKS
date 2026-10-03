@@ -154,6 +154,35 @@ export const leaveRoom = spacetimedb.reducer(ctx => {
   removePlayer(ctx, ctx.sender);
 });
 
+export const setReady = spacetimedb.reducer(
+  { ready: t.bool() },
+  (ctx, { ready }) => {
+    const me = ctx.db.player.identity.find(ctx.sender);
+    if (!me) throw new SenderError('Not in a room');
+    const room = ctx.db.room.code.find(me.roomCode);
+    if (room && room.started) throw new SenderError('Game already started');
+    ctx.db.player.identity.update({ ...me, ready });
+  }
+);
+
+// Offline players are ignored so a dropped phone cannot block the start.
+export const startGame = spacetimedb.reducer(ctx => {
+  const me = ctx.db.player.identity.find(ctx.sender);
+  if (!me) throw new SenderError('Not in a room');
+  const room = ctx.db.room.code.find(me.roomCode);
+  if (!room) throw new SenderError('Room not found');
+  if (!room.host.equals(ctx.sender)) throw new SenderError('Only the host can start the game');
+  if (room.started) throw new SenderError('Game already started');
+
+  const waiting = [...ctx.db.player.roomCode.filter(room.code)].filter(
+    p => p.online && !p.ready && !p.identity.equals(room.host)
+  );
+  if (waiting.length > 0) {
+    throw new SenderError(`Waiting for ${waiting.map(p => p.name).join(', ')}`);
+  }
+  ctx.db.room.code.update({ ...room, started: true });
+});
+
 export const onConnect = spacetimedb.clientConnected(ctx => {
   const existing = ctx.db.player.identity.find(ctx.sender);
   if (existing && !existing.online) {

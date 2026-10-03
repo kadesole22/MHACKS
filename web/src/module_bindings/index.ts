@@ -37,6 +37,8 @@ import {
 import CreateRoomReducer from "./create_room_reducer";
 import JoinRoomReducer from "./join_room_reducer";
 import LeaveRoomReducer from "./leave_room_reducer";
+import SetReadyReducer from "./set_ready_reducer";
+import StartGameReducer from "./start_game_reducer";
 
 // Import all procedure arg schemas
 
@@ -95,6 +97,8 @@ const reducersSchema = __reducers(
   __reducerSchema("create_room", CreateRoomReducer),
   __reducerSchema("join_room", JoinRoomReducer),
   __reducerSchema("leave_room", LeaveRoomReducer),
+  __reducerSchema("set_ready", SetReadyReducer),
+  __reducerSchema("start_game", StartGameReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
