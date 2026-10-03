@@ -16,6 +16,6 @@ export default __t.row({
   name: __t.string(),
   ready: __t.bool(),
   online: __t.bool(),
-  offlineSince: __t.option(__t.timestamp()).name("offline_since"),
   joinedAt: __t.timestamp().name("joined_at"),
+  offlineSince: __t.option(__t.timestamp()).name("offline_since"),
 });

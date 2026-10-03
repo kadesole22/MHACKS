@@ -22,8 +22,8 @@ export const Player = __t.object("Player", {
   name: __t.string(),
   ready: __t.bool(),
   online: __t.bool(),
-  offlineSince: __t.option(__t.timestamp()),
   joinedAt: __t.timestamp(),
+  offlineSince: __t.option(__t.timestamp()),
 });
 export type Player = __Infer<typeof Player>;
 

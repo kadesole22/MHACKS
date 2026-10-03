@@ -27,9 +27,10 @@ const player = table(
     name: t.string(),
     ready: t.bool(),
     online: t.bool(),
+    joinedAt: t.timestamp(),
+    // Appended last (with a default) so existing databases migrate without a reset.
     // Set while offline so the cleanup job can drop players who never come back.
     offlineSince: t.option(t.timestamp()).default(undefined),
-    joinedAt: t.timestamp(),
   }
 );
 
