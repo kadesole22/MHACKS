@@ -55,4 +55,34 @@ Re-export after every change to the game. `Stdb` and `Netplay` do nothing when t
 
 To test two players on one laptop, use two separate browser profiles or one normal and one incognito window (tabs in the same profile share one identity).
 
-Maincloud (hosted) setup comes later; local is enough until the demo.
+## Maincloud (hosted)
+
+The module is deployed to Maincloud as database `mhacks26-platformer` (dashboard: https://spacetimedb.com/mhacks26-platformer).
+
+```sh
+spacetime login   # once, links the CLI to your SpacetimeDB account
+cd spacetimedb
+spacetime publish --server maincloud --module-path spacetimedb -y mhacks26-platformer
+```
+
+Only the account that created the database can publish to it. Run `spacetime sql --server maincloud mhacks26-platformer "SELECT * FROM room"` from outside the repo, because `spacetimedb/spacetime.local.json` otherwise overrides the database name.
+
+The web client reads `web/.env.production` (`wss://maincloud.spacetimedb.com`, `mhacks26-platformer`):
+
+```sh
+cd web
+npm run dev:cloud   # dev server that talks to Maincloud
+npm run build       # production build in web/dist, includes the Godot export from web/public/game
+```
+
+`web/dist` is a static site. Host it on any HTTPS static host that allows a 40 MB file (the Godot `.wasm`); Cloudflare Pages does not.
+
+### Deploying to GitHub Pages
+
+The site is served from the `gh-pages` branch at `https://kadesole22.github.io/MHACKS/`.
+
+1. Export the game from Godot into `web/public/game` (see above).
+2. Run `./scripts/deploy-pages.sh`. It builds the site and force-pushes `web/dist` to the `gh-pages` branch, so the 40 MB game export never enters `main`'s history.
+3. First time only: in the GitHub repo go to Settings > Pages, set Source to "Deploy from a branch", branch `gh-pages`, folder `/ (root)`. Pages on a private repo needs a paid plan, so the repo must be public.
+
+Redeploy with the same script after changing the game or the web client.

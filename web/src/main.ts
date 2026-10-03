@@ -10,7 +10,7 @@ const screen = document.getElementById('screen')!;
 const errorEl = document.getElementById('error')!;
 
 const NAME_KEY = 'player-name';
-const GAME_URL = '/game/index.html';
+const GAME_URL = 'game/index.html';
 const urlCode = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
 // // Set VITE_PUBLIC_URL when the page is served from an address phones cannot reach (or after deploying).
 // const publicUrl: string | undefined = import.meta.env.VITE_PUBLIC_URL;
@@ -183,7 +183,7 @@ function render(): void {
   else renderJoin();
 }
 
-fetch('/game/index.js', { method: 'HEAD' })
+fetch('game/index.js', { method: 'HEAD' })
   .then(res => res.ok && (res.headers.get('content-type') ?? '').includes('javascript'))
   .catch(() => false)
   .then(ok => {
