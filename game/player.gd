@@ -23,4 +23,38 @@ func _physics_process(delta):
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 
+	# Drop down through the platform we're standing on
+	if Input.is_action_just_pressed("drop_down") and is_on_floor():
+		var platform = get_platform_below()
+
+		if platform != null and platform.is_in_group("one_way_platform"):
+			drop_through(platform)
+
 	move_and_slide()
+
+
+func get_platform_below():
+	# Look through the player's current collisions
+	for i in range(get_slide_collision_count()):
+		var collision = get_slide_collision(i)
+
+		# A floor underneath the player has an upward-facing normal.
+		if collision.get_normal().y < -0.7:
+			return collision.get_collider()
+
+	return null
+
+
+func drop_through(platform):
+	# Temporarily make the player ignore ONLY this platform.
+	add_collision_exception_with(platform)
+
+	# Start moving downward.
+	velocity.y = 100.0
+
+	# Give the player enough time to pass underneath the platform.
+	await get_tree().create_timer(0.2).timeout
+
+	# Turn collision with that platform back on.
+	if is_instance_valid(platform):
+		remove_collision_exception_with(platform)
