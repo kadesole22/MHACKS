@@ -11,10 +11,12 @@ import JoinRoomReducer from "../join_room_reducer";
 import LeaveRoomReducer from "../leave_room_reducer";
 import SetReadyReducer from "../set_ready_reducer";
 import StartGameReducer from "../start_game_reducer";
+import UpdateStateReducer from "../update_state_reducer";
 
 export type CreateRoomParams = __Infer<typeof CreateRoomReducer>;
 export type JoinRoomParams = __Infer<typeof JoinRoomReducer>;
 export type LeaveRoomParams = __Infer<typeof LeaveRoomReducer>;
 export type SetReadyParams = __Infer<typeof SetReadyReducer>;
 export type StartGameParams = __Infer<typeof StartGameReducer>;
+export type UpdateStateParams = __Infer<typeof UpdateStateReducer>;
 

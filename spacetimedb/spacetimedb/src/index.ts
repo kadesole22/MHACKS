@@ -55,6 +55,10 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ';
 const CODE_LENGTH = 4;
 const MAX_PLAYERS = 8;
 const MAX_NAME_LENGTH = 16;
+// Spawn row sits on the 700px platform at (576, 500) in game/MHacks26_Game.tscn; keep in sync with the scene.
+const SPAWN_X = 276;
+const SPAWN_SPACING = 90;
+const SPAWN_Y = 400;
 
 function cleanName(raw: string): string {
   const name = raw.trim();
@@ -174,14 +178,50 @@ export const startGame = spacetimedb.reducer(ctx => {
   if (!room.host.equals(ctx.sender)) throw new SenderError('Only the host can start the game');
   if (room.started) throw new SenderError('Game already started');
 
-  const waiting = [...ctx.db.player.roomCode.filter(room.code)].filter(
+  const players = [...ctx.db.player.roomCode.filter(room.code)];
+  const waiting = players.filter(
     p => p.online && !p.ready && !p.identity.equals(room.host)
   );
   if (waiting.length > 0) {
     throw new SenderError(`Waiting for ${waiting.map(p => p.name).join(', ')}`);
   }
   ctx.db.room.code.update({ ...room, started: true });
+
+  players.sort((a, b) =>
+    a.joinedAt.microsSinceUnixEpoch < b.joinedAt.microsSinceUnixEpoch ? -1 : 1
+  );
+  players.forEach((p, i) => {
+    ctx.db.playerState.insert({
+      identity: p.identity,
+      roomCode: room.code,
+      x: SPAWN_X + i * SPAWN_SPACING,
+      y: SPAWN_Y,
+      vx: 0,
+      vy: 0,
+      facing: 1,
+      updatedAt: ctx.timestamp,
+    });
+  });
 });
+
+// Each client simulates its own player and publishes it here; others interpolate.
+export const updateState = spacetimedb.reducer(
+  { x: t.f32(), y: t.f32(), vx: t.f32(), vy: t.f32(), facing: t.i8() },
+  (ctx, { x, y, vx, vy, facing }) => {
+    const state = ctx.db.playerState.identity.find(ctx.sender);
+    if (!state) throw new SenderError('Not in a started game');
+    if (![x, y, vx, vy].every(Number.isFinite)) throw new SenderError('Invalid state');
+    ctx.db.playerState.identity.update({
+      ...state,
+      x,
+      y,
+      vx,
+      vy,
+      facing: facing < 0 ? -1 : 1,
+      updatedAt: ctx.timestamp,
+    });
+  }
+);
 
 export const onConnect = spacetimedb.clientConnected(ctx => {
   const existing = ctx.db.player.identity.find(ctx.sender);
