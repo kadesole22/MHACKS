@@ -6,6 +6,7 @@ import {
   type InferSchema,
   type ReducerCtx,
 } from 'spacetimedb/server';
+import { ScheduleAt } from 'spacetimedb';
 
 const room = table(
   { name: 'room', public: true },
@@ -26,6 +27,8 @@ const player = table(
     name: t.string(),
     ready: t.bool(),
     online: t.bool(),
+    // Set while offline so the cleanup job can drop players who never come back.
+    offlineSince: t.option(t.timestamp()).default(undefined),
     joinedAt: t.timestamp(),
   }
 );
@@ -45,7 +48,15 @@ const playerState = table(
   }
 );
 
-const spacetimedb = schema({ room, player, playerState });
+const cleanupTimer = table(
+  { name: 'cleanup_timer' },
+  {
+    scheduledId: t.u64().primaryKey().autoInc(),
+    scheduledAt: t.scheduleAt(),
+  }
+);
+
+const spacetimedb = schema({ room, player, playerState, cleanupTimer });
 export default spacetimedb;
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
@@ -59,6 +70,13 @@ const MAX_NAME_LENGTH = 16;
 const SPAWN_X = 276;
 const SPAWN_SPACING = 90;
 const SPAWN_Y = 400;
+
+const MICROS_PER_MINUTE = 60_000_000n;
+const CLEANUP_INTERVAL_MICROS = 30_000_000n;
+// A reload or a sleeping phone keeps its seat for this long.
+const OFFLINE_GRACE_MICROS = 2n * MICROS_PER_MINUTE;
+// Hard cap on room age, even if players are still connected.
+const ROOM_MAX_AGE_MICROS = 30n * MICROS_PER_MINUTE;
 
 function cleanName(raw: string): string {
   const name = raw.trim();
@@ -117,6 +135,7 @@ export const createRoom = spacetimedb.reducer(
       name: playerName,
       ready: false,
       online: true,
+      offlineSince: undefined,
       joinedAt: ctx.timestamp,
     });
   }
@@ -133,7 +152,12 @@ export const joinRoom = spacetimedb.reducer(
 
     const existing = ctx.db.player.identity.find(ctx.sender);
     if (existing && existing.roomCode === roomCode) {
-      ctx.db.player.identity.update({ ...existing, name: playerName, online: true });
+      ctx.db.player.identity.update({
+        ...existing,
+        name: playerName,
+        online: true,
+        offlineSince: undefined,
+      });
       return;
     }
 
@@ -149,6 +173,7 @@ export const joinRoom = spacetimedb.reducer(
       name: playerName,
       ready: false,
       online: true,
+      offlineSince: undefined,
       joinedAt: ctx.timestamp,
     });
   }
@@ -224,9 +249,10 @@ export const updateState = spacetimedb.reducer(
 );
 
 export const onConnect = spacetimedb.clientConnected(ctx => {
+  ensureCleanupTimer(ctx);
   const existing = ctx.db.player.identity.find(ctx.sender);
   if (existing && !existing.online) {
-    ctx.db.player.identity.update({ ...existing, online: true });
+    ctx.db.player.identity.update({ ...existing, online: true, offlineSince: undefined });
   }
 });
 
@@ -234,6 +260,50 @@ export const onConnect = spacetimedb.clientConnected(ctx => {
 export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
   const existing = ctx.db.player.identity.find(ctx.sender);
   if (existing && existing.online) {
-    ctx.db.player.identity.update({ ...existing, online: false });
+    ctx.db.player.identity.update({ ...existing, online: false, offlineSince: ctx.timestamp });
   }
 });
+
+// `init` only runs on the first publish, so connections also make sure the repeating timer exists.
+function ensureCleanupTimer(ctx: Ctx) {
+  if (ctx.db.cleanupTimer.count() === 0n) {
+    ctx.db.cleanupTimer.insert({
+      scheduledId: 0n,
+      scheduledAt: ScheduleAt.interval(CLEANUP_INTERVAL_MICROS),
+    });
+  }
+}
+
+export const init = spacetimedb.init(ctx => {
+  ensureCleanupTimer(ctx);
+});
+
+// Removing players goes through removePlayer, which also hands off the host and deletes empty rooms.
+export const cleanup = spacetimedb.reducer(
+  { onSchedule: cleanupTimer },
+  { timer: cleanupTimer.rowType },
+  ctx => {
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+
+    for (const room of [...ctx.db.room.iter()]) {
+      if (now - room.createdAt.microsSinceUnixEpoch > ROOM_MAX_AGE_MICROS) {
+        for (const p of [...ctx.db.player.roomCode.filter(room.code)]) {
+          removePlayer(ctx, p.identity);
+        }
+        ctx.db.room.code.delete(room.code);
+      }
+    }
+
+    for (const p of [...ctx.db.player.iter()]) {
+      if (p.offlineSince && now - p.offlineSince.microsSinceUnixEpoch > OFFLINE_GRACE_MICROS) {
+        removePlayer(ctx, p.identity);
+      }
+    }
+
+    for (const room of [...ctx.db.room.iter()]) {
+      if ([...ctx.db.player.roomCode.filter(room.code)].length === 0) {
+        ctx.db.room.code.delete(room.code);
+      }
+    }
+  }
+);

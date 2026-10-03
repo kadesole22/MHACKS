@@ -10,12 +10,19 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const CleanupTimer = __t.object("CleanupTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type CleanupTimer = __Infer<typeof CleanupTimer>;
+
 export const Player = __t.object("Player", {
   identity: __t.identity(),
   roomCode: __t.string(),
   name: __t.string(),
   ready: __t.bool(),
   online: __t.bool(),
+  offlineSince: __t.option(__t.timestamp()),
   joinedAt: __t.timestamp(),
 });
 export type Player = __Infer<typeof Player>;

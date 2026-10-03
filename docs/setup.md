@@ -65,6 +65,10 @@ cd spacetimedb
 spacetime publish --server maincloud --module-path spacetimedb -y mhacks26-platformer
 ```
 
+After any schema or reducer change, run `npm run generate` in `web/`, publish the module, then redeploy the site right away. A site built with old bindings cannot read tables whose columns changed.
+
+The module cleans up after itself: a scheduled job runs every 30 seconds, removes players who have been offline for more than 2 minutes (handing off the host or deleting the room as needed), and deletes any room older than 30 minutes. The timings are the constants at the top of `spacetimedb/spacetimedb/src/index.ts`.
+
 Only the account that created the database can publish to it. Run `spacetime sql --server maincloud mhacks26-platformer "SELECT * FROM room"` from outside the repo, because `spacetimedb/spacetime.local.json` otherwise overrides the database name.
 
 The web client reads `web/.env.production` (`wss://maincloud.spacetimedb.com`, `mhacks26-platformer`):
