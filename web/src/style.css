@@ -66,6 +66,27 @@ ul {
   list-style: none;
 }
 
+.qr {
+  align-self: center;
+  width: 220px;
+  height: 220px;
+  border-radius: 0.6rem;
+}
+
+.join-link {
+  color: #8fb0ff;
+  font-size: 0.8rem;
+  text-align: center;
+  word-break: break-all;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #e0b34f;
+  text-align: center;
+}
+
 li {
   padding: 0.5rem 0;
   border-bottom: 1px solid #2a2e3a;

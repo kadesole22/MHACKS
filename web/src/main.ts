@@ -3,6 +3,8 @@ import type { Identity } from 'spacetimedb';
 import { tables, type DbConnection } from './module_bindings';
 import { connect } from './connection';
 import { installBridge } from './bridge';
+// TODO(mobile): re-enable the QR code and share link (this import, the block below, joinUrl/qrCanvas, and the share block in renderLobby).
+// import QRCode from 'qrcode';
 
 const screen = document.getElementById('screen')!;
 const errorEl = document.getElementById('error')!;
@@ -10,6 +12,12 @@ const errorEl = document.getElementById('error')!;
 const NAME_KEY = 'player-name';
 const GAME_URL = '/game/index.html';
 const urlCode = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
+// // Set VITE_PUBLIC_URL when the page is served from an address phones cannot reach (or after deploying).
+// const publicUrl: string | undefined = import.meta.env.VITE_PUBLIC_URL;
+// const base = publicUrl ?? location.origin;
+// const onLocalhost = !publicUrl && ['localhost', '127.0.0.1'].includes(location.hostname);
+//
+// let qrCache: { url: string; canvas: HTMLCanvasElement } | null = null;
 
 let conn: DbConnection | null = null;
 let me: Identity | null = null;
@@ -73,6 +81,20 @@ function renderJoin(): void {
   screen.replaceChildren(el('h1', { textContent: 'Join a game' }), name, code, join, create);
 }
 
+// function joinUrl(code: string): string {
+//   return `${base}${location.pathname}?room=${code}`;
+// }
+//
+// // The canvas is reused across lobby re-renders so the code does not flicker.
+// function qrCanvas(url: string): HTMLCanvasElement {
+//   if (qrCache?.url !== url) {
+//     const canvas = el('canvas', { className: 'qr' });
+//     void QRCode.toCanvas(canvas, url, { width: 220, margin: 2 });
+//     qrCache = { url, canvas };
+//   }
+//   return qrCache.canvas;
+// }
+
 function renderLobby(): void {
   const mine = conn!.db.player.identity.find(me!)!;
   const room = conn!.db.room.code.find(mine.roomCode);
@@ -107,9 +129,24 @@ function renderLobby(): void {
     action.onclick = () => void run(() => conn!.reducers.setReady({ ready: !mine.ready }));
   }
 
+  // const url = joinUrl(mine.roomCode);
+  // const share: HTMLElement[] = [
+  //   qrCanvas(url),
+  //   el('a', { href: url, textContent: url, className: 'join-link' }),
+  // ];
+  // if (onLocalhost) {
+  //   share.push(
+  //     el('p', {
+  //       className: 'hint',
+  //       textContent: 'Phones cannot open "localhost". Open this page at the Network address Vite prints, or set VITE_PUBLIC_URL.',
+  //     })
+  //   );
+  // }
+
   screen.replaceChildren(
     el('h1', { textContent: 'Lobby' }),
     el('p', { className: 'code', textContent: mine.roomCode }),
+    // ...share,
     el('p', { textContent: `${players.length} player${players.length === 1 ? '' : 's'}` }),
     list,
     action,

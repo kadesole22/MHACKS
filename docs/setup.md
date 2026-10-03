@@ -34,7 +34,9 @@ npm run generate   # regenerate src/module_bindings after any schema or reducer 
 npm run dev        # http://localhost:5173, also served on the LAN
 ```
 
-The page connects to SpacetimeDB on the same host that served it (`ws://<host>:3000`). To test from a phone, open the `Network:` URL Vite prints on the same Wi-Fi, for example `http://192.168.x.x:5173/?room=ABCD`. Campus Wi-Fi often isolates devices from each other, so use a phone hotspot if it cannot connect.
+The page connects to SpacetimeDB on the same host that served it (`ws://<host>:3000`). Open the lobby on `http://localhost:5173` for development; other browser tabs or profiles on the same laptop join by typing the room code, or with `?room=ABCD` in the URL. The QR code and share link are commented out in `web/src/main.ts` until we work on mobile play (search for `TODO(mobile)`).
+
+The lobby also loads from a phone on the same Wi-Fi at `http://192.168.x.x:5173`, but the game itself will not load there: Godot web exports require a secure context (HTTPS or `localhost`), and an HTTPS page cannot talk to `ws://` either. Playing on a phone therefore needs the Maincloud deployment with the page hosted over HTTPS.
 
 Override the target with `VITE_STDB_URI` and `VITE_STDB_DB` (for example in `web/.env.local`).
 

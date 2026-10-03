@@ -9,9 +9,11 @@
     "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb/spacetimedb"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "spacetimedb": "2.10.*"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "typescript": "~5.6.2",
     "vite": "^6.0.0"
   }
