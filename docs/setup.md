@@ -38,4 +38,13 @@ The page connects to SpacetimeDB on the same host that served it (`ws://<host>:3
 
 Override the target with `VITE_STDB_URI` and `VITE_STDB_DB` (for example in `web/.env.local`).
 
+## Running the game inside the web page
+
+The web page owns the SpacetimeDB connection and embeds the Godot web export in an iframe once the host starts the game. Godot reaches the connection through the `Stdb` autoload (`game/stdb.gd`), which calls `window.stdb` from `web/src/bridge.ts`.
+
+1. In Godot, choose Project > Export > Add > Web.
+2. Set the export path to `web/public/game/index.html` (relative to the repo root) and export.
+3. Run `npm run dev` in `web/`, create a room, and start the game. The export is git-ignored, so each teammate exports their own copy.
+
+Re-export after every change to the game. `Stdb` calls do nothing when the game runs from the editor.
 Maincloud (hosted) setup comes later; local is enough until the demo.

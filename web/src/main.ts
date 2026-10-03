@@ -2,17 +2,21 @@ import './style.css';
 import type { Identity } from 'spacetimedb';
 import { tables, type DbConnection } from './module_bindings';
 import { connect } from './connection';
+import { installBridge } from './bridge';
 
 const screen = document.getElementById('screen')!;
 const errorEl = document.getElementById('error')!;
 
 const NAME_KEY = 'player-name';
+const GAME_URL = '/game/index.html';
 const urlCode = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
 
 let conn: DbConnection | null = null;
 let me: Identity | null = null;
 let synced = false;
 let shownView = '';
+// null until checked. The dev server falls back to index.html for unknown paths, so the check looks for a JS content type.
+let gameBuilt: boolean | null = null;
 
 function showError(message: string): void {
   errorEl.textContent = message;
@@ -114,9 +118,18 @@ function renderLobby(): void {
 }
 
 function renderGame(): void {
-  const leave = el('button', { textContent: 'Leave', className: 'secondary' });
+  const leave = el('button', { textContent: 'Leave', className: 'secondary leave-overlay' });
   leave.onclick = () => void run(() => conn!.reducers.leaveRoom({}));
-  screen.replaceChildren(el('h1', { textContent: 'Game started' }), el('p', { textContent: 'Controls come in a later step.' }), leave);
+
+  if (gameBuilt) {
+    screen.replaceChildren(el('iframe', { src: GAME_URL, className: 'game', title: 'Game' }), leave);
+  } else {
+    screen.replaceChildren(
+      el('h1', { textContent: 'Game started' }),
+      el('p', { textContent: gameBuilt === null ? 'Loading game...' : 'No Godot web export found. See docs/setup.md.' }),
+      leave
+    );
+  }
 }
 
 function render(): void {
@@ -124,13 +137,25 @@ function render(): void {
   const mine = conn.db.player.identity.find(me);
   const started = mine ? !!conn.db.room.code.find(mine.roomCode)?.started : false;
   const view = !mine ? 'join' : started ? 'game' : 'lobby';
-  // The join form is not re-rendered on unrelated updates so typing is not interrupted.
-  if (view === 'join' && shownView === 'join') return;
+  document.body.classList.toggle('playing', view === 'game');
+  // The join form and the game iframe must survive unrelated updates (typing, game reload).
+  if ((view === 'join' || view === 'game') && shownView === view) return;
   shownView = view;
   if (view === 'lobby') renderLobby();
   else if (view === 'game') renderGame();
   else renderJoin();
 }
+
+fetch('/game/index.js', { method: 'HEAD' })
+  .then(res => res.ok && (res.headers.get('content-type') ?? '').includes('javascript'))
+  .catch(() => false)
+  .then(ok => {
+    gameBuilt = ok;
+    if (shownView === 'game') {
+      shownView = '';
+      render();
+    }
+  });
 
 screen.replaceChildren(el('p', { textContent: 'Connecting...' }));
 
@@ -138,6 +163,7 @@ connect({
   onConnect(connection, identity) {
     conn = connection;
     me = identity;
+    installBridge(connection, identity);
     showError('');
     for (const table of [connection.db.room, connection.db.player]) {
       table.onInsert(render);
@@ -151,7 +177,7 @@ connect({
         render();
       })
       .onError(() => showError('Subscription failed'))
-      .subscribe([tables.room, tables.player]);
+      .subscribe([tables.room, tables.player, tables.playerState]);
   },
   onDisconnect() {
     synced = false;

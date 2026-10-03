@@ -3,3 +3,4 @@ node_modules/
 .godot/
 spacetimedb/spacetimedb/dist/
 web/dist/
+web/public/game/

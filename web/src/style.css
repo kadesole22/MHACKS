@@ -79,3 +79,41 @@ li.offline {
   min-height: 1.2rem;
   color: #ff7a7a;
 }
+
+body.playing {
+  display: block;
+}
+
+body.playing #app {
+  width: 100%;
+  height: 100dvh;
+  padding: 0;
+}
+
+body.playing #screen {
+  height: 100%;
+  position: relative;
+}
+
+body.playing #error {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+}
+
+iframe.game {
+  flex: 1;
+  width: 100%;
+  border: 0;
+}
+
+.leave-overlay {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  opacity: 0.6;
+}
