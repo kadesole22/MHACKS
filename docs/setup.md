@@ -42,11 +42,17 @@ Override the target with `VITE_STDB_URI` and `VITE_STDB_DB` (for example in `web
 
 ## Running the game inside the web page
 
-The web page owns the SpacetimeDB connection and embeds the Godot web export in an iframe once the host starts the game. Godot reaches the connection through the `Stdb` autoload (`game/stdb.gd`), which calls `window.stdb` from `web/src/bridge.ts`.
+The web page owns the SpacetimeDB connection and embeds the Godot web export in an iframe once the host starts the game. Godot reaches the connection through two autoloads registered in `game/project.godot`:
 
-1. In Godot, choose Project > Export > Add > Web.
-2. Set the export path to `web/public/game/index.html` (relative to the repo root) and export.
+- `Stdb` (`game/stdb.gd`) wraps `window.stdb` from `web/src/bridge.ts`.
+- `Netplay` (`game/netplay.gd`) publishes the node named `Player` about 20 times a second and shows every other player in the room as a tinted ghost with their name. It needs no changes to `player.gd` or the level, so keep the player node named `Player`.
+
+1. In Godot, choose Project > Export > Add > Web (the repo already has a Web preset in `game/export_presets.cfg`).
+2. Export to `web/public/game/index.html` and export.
 3. Run `npm run dev` in `web/`, create a room, and start the game. The export is git-ignored, so each teammate exports their own copy.
 
-Re-export after every change to the game. `Stdb` calls do nothing when the game runs from the editor.
+Re-export after every change to the game. `Stdb` and `Netplay` do nothing when the game runs from the editor.
+
+To test two players on one laptop, use two separate browser profiles or one normal and one incognito window (tabs in the same profile share one identity).
+
 Maincloud (hosted) setup comes later; local is enough until the demo.
