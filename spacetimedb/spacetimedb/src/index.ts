@@ -46,6 +46,9 @@ const playerState = table(
     vy: t.f32(),
     facing: t.i8(),
     updatedAt: t.timestamp(),
+    // Cumulative impulses survive ordinary movement updates and batched subscriptions.
+    impulseX: t.f64().default(0),
+    impulseY: t.f64().default(0),
   }
 );
 
@@ -226,6 +229,8 @@ export const startGame = spacetimedb.reducer(ctx => {
       vy: 0,
       facing: 1,
       updatedAt: ctx.timestamp,
+      impulseX: 0,
+      impulseY: 0,
     });
   });
 });
@@ -245,6 +250,33 @@ export const updateState = spacetimedb.reducer(
       vy,
       facing: facing < 0 ? -1 : 1,
       updatedAt: ctx.timestamp,
+    });
+  }
+);
+
+// Called once when the grappling player reaches their target.
+export const grappleHit = spacetimedb.reducer(
+  { target: t.identity(), vx: t.f32(), vy: t.f32() },
+  (ctx, { target, vx, vy }) => {
+    if (target.equals(ctx.sender)) throw new SenderError('Cannot grapple yourself');
+    if (![vx, vy].every(Number.isFinite)) throw new SenderError('Invalid impulse');
+
+    const from = ctx.db.player.identity.find(ctx.sender);
+    const to = ctx.db.player.identity.find(target);
+    if (!from || !to || !from.online || !to.online || from.roomCode !== to.roomCode) {
+      throw new SenderError('Target is not in your room');
+    }
+    const sourceState = ctx.db.playerState.identity.find(ctx.sender);
+    const targetState = ctx.db.playerState.identity.find(target);
+    if (!sourceState || !targetState || sourceState.roomCode !== from.roomCode ||
+        targetState.roomCode !== from.roomCode) {
+      throw new SenderError('Not in the same started game');
+    }
+
+    ctx.db.playerState.identity.update({
+      ...targetState,
+      impulseX: targetState.impulseX + vx,
+      impulseY: targetState.impulseY + vy,
     });
   }
 );

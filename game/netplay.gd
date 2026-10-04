@@ -1,11 +1,12 @@
 extends Node
 ## Publishes the local Player's state and draws every other player in the room as a tinted ghost.
-## Needs no changes to player.gd or the level: it looks for a node named "Player" in the current scene.
+## Ghosts have grapple hitboxes; received impulses are applied to the local Player.
 
 const SEND_INTERVAL = 0.05
 const SNAP_DISTANCE = 300.0
 const SMOOTHING = 18.0
 const ICON = preload("res://icon.svg")
+const GRAPPLE_PLAYER_LAYER = 1 << 7 # Physics layer 8, shared with grapple_hook.gd.
 
 var _send_timer = 0.0
 var _last_facing = 1
@@ -27,6 +28,20 @@ func _process(delta: float) -> void:
 		_refresh_remote(scene)
 
 	_smooth_ghosts(delta)
+
+
+func _physics_process(_delta: float) -> void:
+	if not Stdb.is_connected_to_server():
+		return
+	var scene = get_tree().current_scene
+	if scene == null:
+		return
+	var player = scene.get_node_or_null("Player")
+	if player == null:
+		return
+	var impulse := Stdb.take_impulse()
+	if impulse != Vector2.ZERO:
+		player.apply_grapple_impulse(impulse)
 
 
 func _publish_local(scene: Node) -> void:
@@ -79,8 +94,24 @@ func _smooth_ghosts(delta: float) -> void:
 
 
 func _make_ghost(p: Dictionary) -> Node2D:
-	var ghost = Node2D.new()
+	var ghost = Area2D.new()
 	ghost.name = "Ghost_" + str(p["id"]).substr(0, 8)
+	ghost.collision_layer = GRAPPLE_PLAYER_LAYER
+	ghost.collision_mask = 0
+	ghost.monitoring = false
+	ghost.add_to_group("grapple_players")
+	ghost.set_meta("player_id", str(p["id"]))
+
+	var hitbox := CollisionShape2D.new()
+	var source := get_tree().current_scene.get_node_or_null("Player/CollisionShape2D") as CollisionShape2D
+	if source != null and source.shape != null:
+		hitbox.shape = source.shape.duplicate()
+		hitbox.transform = source.transform
+	else:
+		var rectangle := RectangleShape2D.new()
+		rectangle.size = Vector2(50, 50)
+		hitbox.shape = rectangle
+	ghost.add_child(hitbox)
 
 	var sprite = Sprite2D.new()
 	sprite.name = "Sprite2D"

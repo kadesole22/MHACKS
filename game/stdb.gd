@@ -37,3 +37,18 @@ func get_players() -> Array:
 		return []
 	var parsed = JSON.parse_string(str(_bridge.players()))
 	return parsed if parsed is Array else []
+
+
+func send_grapple_hit(target_id: String, impulse: Vector2) -> bool:
+	if _bridge == null:
+		return false
+	return bool(_bridge.sendGrappleHit(target_id, impulse.x, impulse.y))
+
+
+func take_impulse() -> Vector2:
+	if _bridge == null:
+		return Vector2.ZERO
+	var parsed = JSON.parse_string(str(_bridge.takeImpulse()))
+	if parsed is Array and parsed.size() == 2:
+		return Vector2(float(parsed[0]), float(parsed[1]))
+	return Vector2.ZERO

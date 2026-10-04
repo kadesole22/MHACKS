@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://7prhks350n87"]
 
 [ext_resource type="Script" uid="uid://bkc8g7uswqu7u" path="res://player.gd" id="1_cwwdt"]
+[ext_resource type="Script" uid="uid://dl0isxl67niq5" path="res://stage.gd" id="1_prfxm"]
 [ext_resource type="Texture2D" uid="uid://1afo5meccyc4" path="res://icon.svg" id="2_prfxm"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jvhgk"]
@@ -10,6 +11,7 @@ size = Vector2(700, 12)
 size = Vector2(40, 60)
 
 [node name="Node2D" type="Node2D" unique_id=1657923700]
+script = ExtResource("1_prfxm")
 
 [node name="BottomPlatform" type="StaticBody2D" parent="." unique_id=143716031 groups=["one_way_platforms"]]
 position = Vector2(576, 500)
