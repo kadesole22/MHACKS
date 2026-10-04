@@ -15,4 +15,5 @@ export default __t.row({
   host: __t.identity(),
   started: __t.bool(),
   createdAt: __t.timestamp().name("created_at"),
+  lastActivity: __t.option(__t.timestamp()).name("last_activity"),
 });

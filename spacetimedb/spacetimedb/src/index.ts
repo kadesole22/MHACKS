@@ -15,6 +15,9 @@ const room = table(
     host: t.identity(),
     started: t.bool(),
     createdAt: t.timestamp(),
+    // Last lobby action; rooms in play are also kept alive by player movement (see cleanup).
+    // Appended last (with a default) so existing databases migrate without a reset.
+    lastActivity: t.option(t.timestamp()).default(undefined),
   }
 );
 
@@ -49,6 +52,8 @@ const playerState = table(
     // Cumulative impulses survive ordinary movement updates and batched subscriptions.
     impulseX: t.f64().default(0),
     impulseY: t.f64().default(0),
+    // Only advances when the position actually changes, so an idle open tab does not count as activity.
+    movedAt: t.option(t.timestamp()).default(undefined),
   }
 );
 
@@ -79,8 +84,9 @@ const MICROS_PER_MINUTE = 60_000_000n;
 const CLEANUP_INTERVAL_MICROS = 30_000_000n;
 // A reload or a sleeping phone keeps its seat for this long.
 const OFFLINE_GRACE_MICROS = 2n * MICROS_PER_MINUTE;
-// Hard cap on room age, even if players are still connected.
-const ROOM_MAX_AGE_MICROS = 30n * MICROS_PER_MINUTE;
+// A room with no lobby action and no player movement for this long is deleted.
+const ROOM_IDLE_MICROS = 30n * MICROS_PER_MINUTE;
+const MOVE_EPSILON = 1;
 
 function cleanName(raw: string): string {
   const name = raw.trim();
@@ -121,6 +127,11 @@ function removePlayer(ctx: Ctx, identity: Ctx['sender']) {
   }
 }
 
+function touchRoom(ctx: Ctx, code: string) {
+  const room = ctx.db.room.code.find(code);
+  if (room) ctx.db.room.code.update({ ...room, lastActivity: ctx.timestamp });
+}
+
 export const createRoom = spacetimedb.reducer(
   { name: t.string() },
   (ctx, { name }) => {
@@ -132,6 +143,7 @@ export const createRoom = spacetimedb.reducer(
       host: ctx.sender,
       started: false,
       createdAt: ctx.timestamp,
+      lastActivity: undefined,
     });
     ctx.db.player.insert({
       identity: ctx.sender,
@@ -162,6 +174,7 @@ export const joinRoom = spacetimedb.reducer(
         online: true,
         offlineSince: undefined,
       });
+      touchRoom(ctx, roomCode);
       return;
     }
 
@@ -180,11 +193,14 @@ export const joinRoom = spacetimedb.reducer(
       offlineSince: undefined,
       joinedAt: ctx.timestamp,
     });
+    touchRoom(ctx, roomCode);
   }
 );
 
 export const leaveRoom = spacetimedb.reducer(ctx => {
+  const me = ctx.db.player.identity.find(ctx.sender);
   removePlayer(ctx, ctx.sender);
+  if (me) touchRoom(ctx, me.roomCode);
 });
 
 export const setReady = spacetimedb.reducer(
@@ -195,6 +211,7 @@ export const setReady = spacetimedb.reducer(
     const room = ctx.db.room.code.find(me.roomCode);
     if (room && room.started) throw new SenderError('Game already started');
     ctx.db.player.identity.update({ ...me, ready });
+    touchRoom(ctx, me.roomCode);
   }
 );
 
@@ -214,7 +231,7 @@ export const startGame = spacetimedb.reducer(ctx => {
   if (waiting.length > 0) {
     throw new SenderError(`Waiting for ${waiting.map(p => p.name).join(', ')}`);
   }
-  ctx.db.room.code.update({ ...room, started: true });
+  ctx.db.room.code.update({ ...room, started: true, lastActivity: ctx.timestamp });
 
   players.sort((a, b) =>
     a.joinedAt.microsSinceUnixEpoch < b.joinedAt.microsSinceUnixEpoch ? -1 : 1
@@ -231,6 +248,7 @@ export const startGame = spacetimedb.reducer(ctx => {
       updatedAt: ctx.timestamp,
       impulseX: 0,
       impulseY: 0,
+      movedAt: ctx.timestamp,
     });
   });
 });
@@ -242,6 +260,7 @@ export const updateState = spacetimedb.reducer(
     const state = ctx.db.playerState.identity.find(ctx.sender);
     if (!state) throw new SenderError('Not in a started game');
     if (![x, y, vx, vy].every(Number.isFinite)) throw new SenderError('Invalid state');
+    const moved = Math.abs(x - state.x) > MOVE_EPSILON || Math.abs(y - state.y) > MOVE_EPSILON;
     ctx.db.playerState.identity.update({
       ...state,
       x,
@@ -250,6 +269,7 @@ export const updateState = spacetimedb.reducer(
       vy,
       facing: facing < 0 ? -1 : 1,
       updatedAt: ctx.timestamp,
+      movedAt: moved ? ctx.timestamp : (state.movedAt ?? state.updatedAt),
     });
   }
 );
@@ -319,7 +339,12 @@ export const cleanup = spacetimedb.reducer(
     const now = ctx.timestamp.microsSinceUnixEpoch;
 
     for (const room of [...ctx.db.room.iter()]) {
-      if (now - room.createdAt.microsSinceUnixEpoch > ROOM_MAX_AGE_MICROS) {
+      let lastActive = (room.lastActivity ?? room.createdAt).microsSinceUnixEpoch;
+      for (const s of ctx.db.playerState.roomCode.filter(room.code)) {
+        const moved = (s.movedAt ?? s.updatedAt).microsSinceUnixEpoch;
+        if (moved > lastActive) lastActive = moved;
+      }
+      if (now - lastActive > ROOM_IDLE_MICROS) {
         for (const p of [...ctx.db.player.roomCode.filter(room.code)]) {
           removePlayer(ctx, p.identity);
         }

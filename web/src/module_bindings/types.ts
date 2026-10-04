@@ -36,6 +36,9 @@ export const PlayerState = __t.object("PlayerState", {
   vy: __t.f32(),
   facing: __t.i8(),
   updatedAt: __t.timestamp(),
+  impulseX: __t.f64(),
+  impulseY: __t.f64(),
+  movedAt: __t.option(__t.timestamp()),
 });
 export type PlayerState = __Infer<typeof PlayerState>;
 
@@ -44,6 +47,7 @@ export const Room = __t.object("Room", {
   host: __t.identity(),
   started: __t.bool(),
   createdAt: __t.timestamp(),
+  lastActivity: __t.option(__t.timestamp()),
 });
 export type Room = __Infer<typeof Room>;
 

@@ -10,16 +10,8 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  identity: __t.identity().primaryKey(),
-  roomCode: __t.string().name("room_code"),
-  x: __t.f32(),
-  y: __t.f32(),
+export default {
+  target: __t.identity(),
   vx: __t.f32(),
   vy: __t.f32(),
-  facing: __t.i8(),
-  updatedAt: __t.timestamp().name("updated_at"),
-  impulseX: __t.f64().name("impulse_x"),
-  impulseY: __t.f64().name("impulse_y"),
-  movedAt: __t.option(__t.timestamp()).name("moved_at"),
-});
+};
