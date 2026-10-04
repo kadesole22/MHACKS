@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://bkc8g7uswqu7u" path="res://player.gd" id="1_cwwdt"]
 [ext_resource type="Script" uid="uid://dl0isxl67niq5" path="res://stage.gd" id="1_prfxm"]
 [ext_resource type="Texture2D" uid="uid://1afo5meccyc4" path="res://icon.svg" id="2_prfxm"]
-[ext_resource type="Texture2D" uid="uid://dp440ucwumf0l" path="res://FIRE.png" id="3_prfxm"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jvhgk"]
 size = Vector2(700, 12)
@@ -53,14 +52,3 @@ shape = SubResource("RectangleShape2D_v0ep5")
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=599046530]
 scale = Vector2(0.4, 0.4)
 texture = ExtResource("2_prfxm")
-
-[node name="FireGround" type="Sprite2D" parent="." unique_id=107261940]
-position = Vector2(663.4251, 781.0475)
-rotation = -3.138306
-scale = Vector2(2.3316283, 1)
-texture = ExtResource("3_prfxm")
-
-[node name="FireBolt" type="Sprite2D" parent="." unique_id=6978041]
-position = Vector2(305, 89)
-scale = Vector2(0.037335284, 0.5104167)
-texture = ExtResource("3_prfxm")

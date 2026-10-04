@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+.godot/
+spacetimedb/spacetimedb/dist/
+web/dist/
+web/public/game/
