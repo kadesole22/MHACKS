@@ -78,6 +78,9 @@ func _physics_process(delta):
 		else:
 			grapple_point = grapple_target.global_position
 
+	if is_grappling and not grappling_player and is_instance_valid(current_hook):
+		grapple_point = current_hook.global_position
+
 	# ------------------------------------------------
 	# If we're currently attached to a grapple point...
 	# ------------------------------------------------
