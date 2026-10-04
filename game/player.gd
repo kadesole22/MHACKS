@@ -17,6 +17,9 @@ const KNOCKBACK_DURATION = 0.65
 
 # Load our GrappleHook scene.
 const GRAPPLE_HOOK = preload("res://grapple_hook.tscn")
+const SLASH_ATTACK = preload("res://slash_attack.gd")
+const SLASH_COOLDOWN = 0.35
+const RESPAWN_DELAY = 0.75
 
 
 var current_hook = null
@@ -25,9 +28,36 @@ var grapple_point = Vector2.ZERO
 var grapple_target: Node2D = null
 var grappling_player = false
 var _knockback_remaining = 0.0
+var _slash_cooldown_remaining = 0.0
+var is_dead: bool = false
+var _spawn_position: Vector2
+var _spawn_collision_layer: int
+var _spawn_collision_mask: int
+var _respawn_remaining: float = 0.0
+
+
+func _ready() -> void:
+	add_to_group("grapple_players")
+	_spawn_position = global_position
+	_spawn_collision_layer = collision_layer
+	_spawn_collision_mask = collision_mask
 
 
 func _physics_process(delta):
+	var stage = get_tree().current_scene
+	if is_dead:
+		if stage != null and stage.get("respawn_enabled") == true:
+			_respawn_remaining = maxf(0.0, _respawn_remaining - delta)
+			if _respawn_remaining <= 0.0:
+				respawn()
+		return
+	if stage != null and stage.get("void_kill_y") != null:
+		var kill_y: float = stage.get_void_kill_y() if stage.has_method("get_void_kill_y") else float(stage.get("void_kill_y"))
+		if global_position.y > kill_y:
+			die()
+			return
+
+	_slash_cooldown_remaining = maxf(0.0, _slash_cooldown_remaining - delta)
 	# Keep transferred momentum instead of overwriting it with movement input.
 	if _knockback_remaining > 0.0:
 		_knockback_remaining = maxf(0.0, _knockback_remaining - delta)
@@ -37,8 +67,10 @@ func _physics_process(delta):
 		return
 
 	# Fire grapple
-	if Input.is_action_just_pressed("grapple"):
+	if Input.is_action_just_pressed("grapple") and get_viewport().gui_get_hovered_control() == null:
 		fire_grapple()
+	if Input.is_action_just_pressed("slash") and get_viewport().gui_get_hovered_control() == null:
+		fire_slash()
 
 	if is_grappling and grappling_player:
 		if not is_instance_valid(grapple_target) or grapple_target.is_queued_for_deletion():
@@ -112,7 +144,21 @@ func _physics_process(delta):
 			_complete_grapple(velocity_before_move)
 
 
+func fire_slash() -> void:
+	if is_dead or _slash_cooldown_remaining > 0.0 or _knockback_remaining > 0.0:
+		return
+	var aim := get_global_mouse_position() - global_position
+	if aim.length_squared() < 1.0:
+		return
+	var slash = SLASH_ATTACK.new()
+	slash.initialize(self, aim.normalized())
+	add_child(slash)
+	_slash_cooldown_remaining = SLASH_COOLDOWN
+
+
 func fire_grapple():
+	if is_dead or _knockback_remaining > 0.0:
+		return
 	# Don't fire another grapple while one is already flying
 	# or while we're already being pulled.
 	if current_hook != null or is_grappling:
@@ -209,6 +255,50 @@ func _end_grapple() -> void:
 
 
 func apply_grapple_impulse(impulse: Vector2) -> void:
+	apply_knockback(impulse)
+
+
+func apply_knockback(impulse: Vector2) -> void:
+	if is_dead:
+		return
 	_end_grapple()
 	velocity += impulse
 	_knockback_remaining = KNOCKBACK_DURATION
+
+
+func die() -> void:
+	if is_dead:
+		return
+	is_dead = true
+	_respawn_remaining = RESPAWN_DELAY
+	_end_grapple()
+	velocity = Vector2.ZERO
+	_knockback_remaining = 0.0
+	_slash_cooldown_remaining = 0.0
+	for child in get_children():
+		if child.get_script() == SLASH_ATTACK:
+			child.set_physics_process(false)
+			child.queue_free()
+	for body in get_collision_exceptions():
+		if is_instance_valid(body):
+			remove_collision_exception_with(body)
+	remove_from_group("grapple_players")
+	collision_layer = 0
+	collision_mask = 0
+	hide()
+
+
+func respawn() -> void:
+	if not is_dead:
+		return
+	global_position = _spawn_position
+	velocity = Vector2.ZERO
+	jumps_remaining = MAX_JUMPS
+	_knockback_remaining = 0.0
+	_slash_cooldown_remaining = 0.0
+	_respawn_remaining = 0.0
+	collision_layer = _spawn_collision_layer
+	collision_mask = _spawn_collision_mask
+	add_to_group("grapple_players")
+	is_dead = false
+	show()

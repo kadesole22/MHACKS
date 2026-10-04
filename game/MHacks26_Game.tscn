@@ -8,14 +8,18 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jvhgk"]
 size = Vector2(700, 12)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_prfxm"]
+size = Vector2(420, 12)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v0ep5"]
 size = Vector2(40, 60)
 
 [node name="Node2D" type="Node2D" unique_id=1657923700]
 script = ExtResource("1_prfxm")
 
-[node name="BottomPlatform" type="StaticBody2D" parent="." unique_id=143716031 groups=["one_way_platforms"]]
+[node name="BottomPlatform" type="AnimatableBody2D" parent="." unique_id=143716031 groups=["one_way_platforms"]]
 position = Vector2(576, 500)
+sync_to_physics = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BottomPlatform" unique_id=444833191]
 shape = SubResource("RectangleShape2D_jvhgk")
@@ -26,16 +30,17 @@ one_way_collision_margin = 4.0
 points = PackedVector2Array(-350, 0, 350, 0)
 width = 6.0
 
-[node name="TopPlatform" type="StaticBody2D" parent="." unique_id=1731790091 groups=["one_way_platforms"]]
+[node name="TopPlatform" type="AnimatableBody2D" parent="." unique_id=1731790091 groups=["one_way_platforms"]]
 position = Vector2(576, 300)
+sync_to_physics = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TopPlatform" unique_id=292441262]
-shape = SubResource("RectangleShape2D_jvhgk")
+shape = SubResource("RectangleShape2D_prfxm")
 one_way_collision = true
 one_way_collision_margin = 4.0
 
 [node name="Line2D" type="Line2D" parent="TopPlatform" unique_id=1525888916]
-points = PackedVector2Array(-350, 0, 350, 0)
+points = PackedVector2Array(-210, 0, 210, 0)
 width = 6.0
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=364721972]

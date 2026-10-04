@@ -1,6 +1,6 @@
 extends Node
 ## Publishes the local Player's state and draws every other player in the room as a tinted ghost.
-## Ghosts have grapple hitboxes; received impulses are applied to the local Player.
+## Ghosts have combat hitboxes; received impulses are applied to the local Player.
 
 const SEND_INTERVAL = 0.05
 const SNAP_DISTANCE = 300.0
@@ -41,7 +41,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	var impulse := Stdb.take_impulse()
 	if impulse != Vector2.ZERO:
-		player.apply_grapple_impulse(impulse)
+		player.apply_knockback(impulse)
 
 
 func _publish_local(scene: Node) -> void:
@@ -57,6 +57,8 @@ func _refresh_remote(scene: Node) -> void:
 	var seen = {}
 	for p in Stdb.get_players():
 		if p.get("me", false) or not p.get("online", true):
+			continue
+		if scene.has_method("is_player_alive") and not scene.is_player_alive(p):
 			continue
 		var id = str(p["id"])
 		seen[id] = true
